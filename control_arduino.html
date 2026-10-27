@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control IoT - Arduino</title>
+  <style>
+    :root {
+      --azul: #0878d1;
+      --azul-oscuro: #075ba0;
+      --fondo: #f3f7fc;
+      --texto: #18324b;
+      --muted: #6d8195;
+      --borde: #dce7f1;
+      --verde: #16885b;
+      --rojo: #c83d4b;
+      --amarillo: #b87908;
+      --blanco: #fff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--texto);
+      background: linear-gradient(140deg, #eaf4ff, var(--fondo) 48%, #f7faff);
+      min-height: 100vh;
+    }
+    header {
+      padding: 24px 18px;
+      color: white;
+      background: linear-gradient(115deg, #086bb8, #1594e8);
+      box-shadow: 0 5px 18px #075ba025;
+    }
+    .header-inner, main { width: min(1000px, calc(100% - 32px)); margin: auto; }
+    .eyebrow { text-transform: uppercase; letter-spacing: 2px; font-size: .75rem; opacity: .85; }
+    h1 { margin: 8px 0 6px; font-size: clamp(1.5rem, 4vw, 2.15rem); }
+    header p { margin: 0; opacity: .9; }
+    main { padding: 24px 0 40px; }
+    .top-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card {
+      background: var(--blanco);
+      border: 1px solid var(--borde);
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 8px 26px #234e7010;
+      margin-bottom: 16px;
+    }
+    .card h2 { font-size: 1.1rem; margin: 0 0 15px; }
+    .connection { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+    .dot { width: 11px; height: 11px; border-radius: 50%; background: #a2afbc; box-shadow: 0 0 0 4px #a2afbc20; }
+    .dot.connected { background: var(--verde); box-shadow: 0 0 0 4px #16885b20; }
+    .dot.connecting { background: #e4a32a; box-shadow: 0 0 0 4px #e4a32a20; }
+    .small { color: var(--muted); font-size: .9rem; overflow-wrap: anywhere; }
+    .sensor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .metric { background: #f3f8fd; border-radius: 14px; padding: 17px; }
+    .metric-label { color: var(--muted); font-size: .88rem; }
+    .metric-value { font-size: clamp(1.6rem, 5vw, 2.4rem); font-weight: 800; margin-top: 7px; }
+    .metric-value span { font-size: .95rem; font-weight: 500; color: var(--muted); }
+    .mode-line { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+    .mode-switch { display: flex; padding: 4px; background: #edf3f8; border-radius: 12px; gap: 4px; }
+    .mode-switch button { border: 0; border-radius: 9px; background: transparent; padding: 10px 13px; cursor: pointer; font-weight: 700; color: var(--muted); }
+    .mode-switch button.active { background: var(--azul); color: white; box-shadow: 0 3px 9px #0878d133; }
+    .controls-wrap { text-align: center; padding-top: 4px; }
+    .controls {
+      display: flex; grid-template-columns: repeat(3, minmax(70px, 120px));
+      justify-content: center; gap: 12px; margin: 18px auto;
+    }
+    .control-btn {
+      border: 1px solid var(--borde); background: white; color: var(--texto);
+      border-radius: 15px; padding: 15px 8px; min-height: 88px;
+      font-size: .9rem; font-weight: 700; cursor: pointer;
+      box-shadow: 0 5px 12px #18324b0b; transition: transform .15s, border-color .15s, background .15s;
+    }
+    .control-btn:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--azul); }
+    .control-btn:active:not(:disabled) { transform: scale(.98); }
+    .control-btn .symbol { display: block; font-size: 1.65rem; margin-bottom: 6px; }
+    .control-btn.stop { color: var(--rojo); border-color: #f0cbd0; }
+    .control-btn.selected { background: #e9f5ff; border-color: var(--azul); color: var(--azul-oscuro); }
+    .control-btn:disabled { opacity: .42; cursor: not-allowed; }
+    .notice { border-radius: 12px; padding: 12px 14px; background: #fff7e5; color: #855b0c; font-size: .9rem; line-height: 1.45; }
+    .notice.good { background: #eaf8f1; color: #176b4b; }
+    .log { font-family: Consolas, monospace; font-size: .83rem; background: #102235; color: #d7eaff; border-radius: 12px; padding: 13px; min-height: 72px; max-height: 160px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+    footer { text-align: center; color: var(--muted); font-size: .82rem; padding: 4px 0 20px; }
+    @media (max-width: 650px) {
+      .top-row { grid-template-columns: 1fr; }
+      .card { padding: 17px; }
+      .mode-line { align-items: flex-start; flex-direction: column; }
+      .mode-switch { width: 100%; }
+      .mode-switch button { flex: 1; }
+      .controls { gap: 8px; }
+      .control-btn { min-height: 78px; padding: 11px 4px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="eyebrow">Sistema IoT · Panel de control</div>
+      <h1>Control de Arduino</h1>
+      <p>Lectura ultrasónica y control del motor en tiempo real</p>
+    </div>
+  </header>
+
+  <main>
+    <section class="top-row">
+      <article class="card">
+        <h2>Conexión con Quarkus</h2>
+        <div class="connection"><span class="dot connecting" id="statusDot"></span><span id="statusText">Conectando...</span></div>
+        <p class="small" id="endpointText">ws://192.168.100.102:8080/arduino</p>
+        <p class="small" id="lastMessage">Esperando mensajes del servidor.</p>
+      </article>
+      <article class="card">
+        <h2>Lecturas del sensor</h2>
+        <div class="sensor-grid">
+          <div class="metric">
+            <div class="metric-label">Distancia detectada</div>
+            <div class="metric-value"><span id="distance">--</span> <span>cm</span></div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Estado del motor</div>
+            <div class="metric-value" style="font-size:1.35rem" id="motorState">Detenido</div>
+            <div class="small" id="motorModeLabel">Modo automático</div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="card">
+      <div class="mode-line">
+        <div>
+          <h2 style="margin-bottom:5px">Modo de operación</h2>
+          <div class="small">En manual, el motor responde solo a los botones. El sensor sigue enviando lecturas.</div>
+        </div>
+        <div class="mode-switch" role="group" aria-label="Modo de operación">
+          <button id="autoBtn" class="active" type="button">Automático</button>
+          <button id="manualBtn" type="button">Manual</button>
+        </div>
+      </div>
+      <hr style="border:0;border-top:1px solid var(--borde);margin:20px 0">
+      <div class="controls-wrap">
+        <h2>Control manual del motor</h2>
+        <p class="small">Selecciona una acción para enviar la orden al Arduino.</p>
+        <div class="controls">
+          <div></div>
+          <button class="control-btn" id="leftBtn" type="button" disabled>
+            <span class="symbol">↶</span>Girar izquierda
+          </button>
+          <div></div>
+          <button class="control-btn" id="stopBtn" type="button" disabled>
+            <span class="symbol">■</span>Detener motor
+          </button>
+          <button class="control-btn" id="rightBtn" type="button" disabled>
+            <span class="symbol">↷</span>Girar derecha
+          </button>
+          <div></div>
+        </div>
+        <div class="notice" id="controlNotice">Conecta con el servidor para habilitar el control. Los botones se activan en modo manual.</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Registro de comunicación</h2>
+      <div class="log" id="log" aria-live="polite">[Sistema] Página iniciada.</div>
+    </section>
+    <footer>Arduino UNO R4 WiFi · HC-SR04 · L298N · WebSocket</footer>
+  </main>
+
+  <script>
+    // Cambia esta dirección si la IP o ruta de Quarkus cambia.
+    const WS_URL = "ws://192.168.100.102:8080/arduino";
+
+    const statusDot = document.getElementById("statusDot");
+    const statusText = document.getElementById("statusText");
+    const endpointText = document.getElementById("endpointText");
+    const lastMessage = document.getElementById("lastMessage");
+    const distanceEl = document.getElementById("distance");
+    const motorStateEl = document.getElementById("motorState");
+    const motorModeLabel = document.getElementById("motorModeLabel");
+    const controlNotice = document.getElementById("controlNotice");
+    const logEl = document.getElementById("log");
+
+    const autoBtn = document.getElementById("autoBtn");
+    const manualBtn = document.getElementById("manualBtn");
+    const leftBtn = document.getElementById("leftBtn");
+    const rightBtn = document.getElementById("rightBtn");
+    const stopBtn = document.getElementById("stopBtn");
+
+    let socket = null;
+    let automatico = 1;
+    let direccion = 0;
+    let conectado = false;
+
+    endpointText.textContent = WS_URL;
+
+    function registrar(texto) {
+      const hora = new Date().toLocaleTimeString();
+      const lineas = logEl.textContent.split("\n");
+      lineas.push(`[${hora}] ${texto}`);
+      logEl.textContent = lineas.slice(-12).join("\n");
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function actualizarConexion(estado, texto) {
+      conectado = estado === "connected";
+      statusText.textContent = texto;
+      statusDot.className = "dot " + (estado === "connected" ? "connected" : estado === "connecting" ? "connecting" : "");
+      actualizarInterfaz();
+    }
+
+    function actualizarInterfaz() {
+      autoBtn.classList.toggle("active", automatico === 1);
+      manualBtn.classList.toggle("active", automatico === 0);
+
+      const habilitado = conectado && automatico === 0;
+      leftBtn.disabled = !habilitado;
+      rightBtn.disabled = !habilitado;
+      stopBtn.disabled = !habilitado;
+
+      motorModeLabel.textContent = automatico ? "Modo automático" : "Modo manual";
+      controlNotice.className = "notice" + (habilitado ? " good" : "");
+      controlNotice.textContent = !conectado
+        ? "Sin conexión con Quarkus. Comprueba que el servidor esté activo y que la ruta WebSocket sea correcta."
+        : automatico
+          ? "Modo automático activo: el Arduino decide el movimiento según el sensor. Cambia a manual para usar los botones."
+          : "Modo manual activo: usa izquierda, derecha o detener para controlar el motor.";
+    }
+
+    function conectar() {
+      actualizarConexion("connecting", "Conectando...");
+      registrar("Conectando a " + WS_URL);
+
+      try {
+        socket = new WebSocket(WS_URL);
+      } catch (error) {
+        actualizarConexion("disconnected", "No se pudo crear la conexión");
+        registrar("Error creando WebSocket: " + error.message);
+        setTimeout(conectar, 3000);
+        return;
+      }
+
+      socket.onopen = () => {
+        actualizarConexion("connected", "Conectado");
+        lastMessage.textContent = "Conexión WebSocket establecida.";
+        registrar("Conexión WebSocket establecida.");
+        // Enviar estado inicial: modo automático, motor detenido.
+        enviarControl(1, 0);
+      };
+
+      socket.onmessage = (event) => {
+        lastMessage.textContent = "Último mensaje: " + new Date().toLocaleTimeString();
+        registrar("RX: " + event.data);
+
+        try {
+          const datos = JSON.parse(event.data);
+          if (datos.tipo === "arduino" || datos.tipo === "sensor" || datos.tipo === "telemetria") {
+            if (datos.distancia !== undefined && Number.isFinite(Number(datos.distancia))) {
+              distanceEl.textContent = Number(datos.distancia);
+            }
+            if (datos.direccion !== undefined) {
+              direccion = Number(datos.direccion);
+              mostrarDireccion(direccion);
+            }
+            if (datos.automatico !== undefined) {
+              automatico = Number(datos.automatico) === 1 ? 1 : 0;
+              actualizarInterfaz();
+            }
+          } else if (datos.distancia !== undefined) {
+            distanceEl.textContent = Number(datos.distancia);
+          }
+        } catch (_) {
+          // El servidor puede enviar mensajes de texto que no sean JSON.
+        }
+      };
+
+      socket.onerror = () => {
+        registrar("Error en la conexión WebSocket.");
+      };
+
+      socket.onclose = () => {
+        actualizarConexion("disconnected", "Desconectado");
+        lastMessage.textContent = "Conexión cerrada. Intentando reconectar...";
+        registrar("Conexión cerrada; se intentará reconectar en 3 segundos.");
+        setTimeout(conectar, 3000);
+      };
+    }
+
+    function enviarControl(modo, dir) {
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        registrar("No se envió la orden: no hay conexión.");
+        return false;
+      }
+
+      const mensaje = {
+        tipo: "web",
+        automatico: modo,
+        direccion: dir
+      };
+
+      socket.send(JSON.stringify(mensaje));
+      registrar("TX: " + JSON.stringify(mensaje));
+      automatico = modo;
+      direccion = dir;
+      actualizarInterfaz();
+      mostrarDireccion(dir);
+      return true;
+    }
+
+    function mostrarDireccion(dir) {
+      const nombres = { 0: "Detenido", 1: "Girando derecha", 2: "Girando izquierda" };
+      motorStateEl.textContent = nombres[dir] ?? "Desconocido";
+      leftBtn.classList.toggle("selected", dir === 2 && automatico === 0);
+      rightBtn.classList.toggle("selected", dir === 1 && automatico === 0);
+      stopBtn.classList.toggle("selected", dir === 0 && automatico === 0);
+    }
+
+    autoBtn.addEventListener("click", () => {
+      if (enviarControl(1, 0)) registrar("Modo automático solicitado.");
+    });
+
+    manualBtn.addEventListener("click", () => {
+      if (enviarControl(0, 0)) registrar("Modo manual activado; motor detenido por seguridad.");
+    });
+
+    leftBtn.addEventListener("click", () => {
+      if (automatico !== 0) return;
+      enviarControl(0, 2);
+    });
+
+    rightBtn.addEventListener("click", () => {
+      if (automatico !== 0) return;
+      enviarControl(0, 1);
+    });
+
+    stopBtn.addEventListener("click", () => {
+      if (automatico !== 0) return;
+      enviarControl(0, 0);
+    });
+
+    actualizarInterfaz();
+    conectar();
+  </script>
+</body>
+</html>
