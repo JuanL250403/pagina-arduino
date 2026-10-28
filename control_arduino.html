@@ -14,7 +14,6 @@
       --borde: #dce7f1;
       --verde: #16885b;
       --rojo: #c83d4b;
-      --amarillo: #b87908;
       --blanco: #fff;
     }
     * { box-sizing: border-box; }
@@ -79,7 +78,47 @@
     .control-btn:disabled { opacity: .42; cursor: not-allowed; }
     .notice { border-radius: 12px; padding: 12px 14px; background: #fff7e5; color: #855b0c; font-size: .9rem; line-height: 1.45; }
     .notice.good { background: #eaf8f1; color: #176b4b; }
-    .log { font-family: Consolas, monospace; font-size: .83rem; background: #102235; color: #d7eaff; border-radius: 12px; padding: 13px; min-height: 72px; max-height: 160px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+    /* Estilos del módulo del equipo */
+    .team-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 16px;
+      margin-top: 15px;
+    }
+    .team-member {
+      background: #f8fafc;
+      border: 1px solid var(--borde);
+      border-radius: 14px;
+      padding: 14px;
+      text-align: center;
+      transition: transform .2s ease;
+    }
+    .team-member:hover {
+      transform: translateY(-3px);
+    }
+    .team-photo {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin: 0 auto 10px;
+      border: 3px solid var(--blanco);
+      box-shadow: 0 3px 8px #00000015;
+      background: #e2e8f0;
+      display: block;
+    }
+    .team-name {
+      font-weight: 700;
+      font-size: .95rem;
+      color: var(--texto);
+      margin-bottom: 2px;
+    }
+    .team-role {
+      font-size: .8rem;
+      color: var(--muted);
+    }
+
     footer { text-align: center; color: var(--muted); font-size: .82rem; padding: 4px 0 20px; }
     @media (max-width: 650px) {
       .top-row { grid-template-columns: 1fr; }
@@ -89,6 +128,7 @@
       .mode-switch button { flex: 1; }
       .controls { gap: 8px; }
       .control-btn { min-height: 78px; padding: 11px 4px; }
+      .team-grid { grid-template-columns: repeat(2, 1fr); }
     }
   </style>
 </head>
@@ -104,10 +144,8 @@
   <main>
     <section class="top-row">
       <article class="card">
-        <h2>Conexión con Quarkus</h2>
+        <h2>Estado de Conexión</h2>
         <div class="connection"><span class="dot connecting" id="statusDot"></span><span id="statusText">Conectando...</span></div>
-        <p class="small" id="endpointText">ws://192.168.100.102:8080/arduino</p>
-        <p class="small" id="lastMessage">Esperando mensajes del servidor.</p>
       </article>
       <article class="card">
         <h2>Lecturas del sensor</h2>
@@ -141,43 +179,60 @@
         <h2>Control manual del motor</h2>
         <p class="small">Selecciona una acción para enviar la orden al Arduino.</p>
         <div class="controls">
-          <div></div>
           <button class="control-btn" id="leftBtn" type="button" disabled>
             <span class="symbol">↶</span>Girar izquierda
           </button>
-          <div></div>
-          <button class="control-btn" id="stopBtn" type="button" disabled>
+          <button class="control-btn stop" id="stopBtn" type="button" disabled>
             <span class="symbol">■</span>Detener motor
           </button>
           <button class="control-btn" id="rightBtn" type="button" disabled>
             <span class="symbol">↷</span>Girar derecha
           </button>
-          <div></div>
         </div>
         <div class="notice" id="controlNotice">Conecta con el servidor para habilitar el control. Los botones se activan en modo manual.</div>
       </div>
     </section>
 
+    <!-- Módulo del Equipo -->
     <section class="card">
-      <h2>Registro de comunicación</h2>
-      <div class="log" id="log" aria-live="polite">[Sistema] Página iniciada.</div>
+      <h2>Integrantes del equipo</h2>
+      <div class="team-grid">
+        <div class="team-member">
+          <img src="./tiffany.jpeg" alt="Integrante 1" class="team-photo">
+          <div class="team-name">Tiffany Nahomy Benítez Reyes </div>
+          <div class="team-role">#BR250073</div>
+        </div>
+        <div class="team-member">
+          <img src="./juan.png" alt="Integrante 2" class="team-photo">
+          <div class="team-name">Juan Manuel Leiva Montes</div>
+          <div class="team-role">#LM250403</div>
+        </div>
+        <div class="team-member">
+          <img src="./dani.jpeg" alt="Integrante 3" class="team-photo">
+          <div class="team-name">Daniela Guadalupe Hernandez Mejia</div>
+          <div class="team-role">#HM250077</div>
+        </div>
+        <div class="team-member">
+          <img src="./javier.jpeg" alt="Integrante 3" class="team-photo">
+          <div class="team-name">Javier Alexander Ramos Garcia</div>
+          <div class="team-role">#RG251044</div>
+        </div>
+          <img src="./barza.png" alt="Integrante 3" height="150">
+      </div>
     </section>
+
     <footer>Arduino UNO R4 WiFi · HC-SR04 · L298N · WebSocket</footer>
   </main>
 
   <script>
-    // Cambia esta dirección si la IP o ruta de Quarkus cambia.
-    const WS_URL = "ws://192.168.100.102:8080/arduino";
+    const WS_URL = "wss://api-arduino-1-30b2.onrender.com/arduino";
 
     const statusDot = document.getElementById("statusDot");
     const statusText = document.getElementById("statusText");
-    const endpointText = document.getElementById("endpointText");
-    const lastMessage = document.getElementById("lastMessage");
     const distanceEl = document.getElementById("distance");
     const motorStateEl = document.getElementById("motorState");
     const motorModeLabel = document.getElementById("motorModeLabel");
     const controlNotice = document.getElementById("controlNotice");
-    const logEl = document.getElementById("log");
 
     const autoBtn = document.getElementById("autoBtn");
     const manualBtn = document.getElementById("manualBtn");
@@ -189,16 +244,6 @@
     let automatico = 1;
     let direccion = 0;
     let conectado = false;
-
-    endpointText.textContent = WS_URL;
-
-    function registrar(texto) {
-      const hora = new Date().toLocaleTimeString();
-      const lineas = logEl.textContent.split("\n");
-      lineas.push(`[${hora}] ${texto}`);
-      logEl.textContent = lineas.slice(-12).join("\n");
-      logEl.scrollTop = logEl.scrollHeight;
-    }
 
     function actualizarConexion(estado, texto) {
       conectado = estado === "connected";
@@ -219,37 +264,29 @@
       motorModeLabel.textContent = automatico ? "Modo automático" : "Modo manual";
       controlNotice.className = "notice" + (habilitado ? " good" : "");
       controlNotice.textContent = !conectado
-        ? "Sin conexión con Quarkus. Comprueba que el servidor esté activo y que la ruta WebSocket sea correcta."
+        ? "Sin conexión con el servidor. Comprueba que el servicio esté activo."
         : automatico
-          ? "Modo automático activo: el Arduino decide el movimiento según el sensor. Cambia a manual para usar los botones."
-          : "Modo manual activo: usa izquierda, derecha o detener para controlar el motor.";
+          ? "Modo automático activo: el Arduino decide el movimiento según el sensor."
+          : "Modo manual activo: usa los botones para controlar el motor.";
     }
 
     function conectar() {
       actualizarConexion("connecting", "Conectando...");
-      registrar("Conectando a " + WS_URL);
 
       try {
         socket = new WebSocket(WS_URL);
       } catch (error) {
         actualizarConexion("disconnected", "No se pudo crear la conexión");
-        registrar("Error creando WebSocket: " + error.message);
         setTimeout(conectar, 3000);
         return;
       }
 
       socket.onopen = () => {
         actualizarConexion("connected", "Conectado");
-        lastMessage.textContent = "Conexión WebSocket establecida.";
-        registrar("Conexión WebSocket establecida.");
-        // Enviar estado inicial: modo automático, motor detenido.
         enviarControl(1, 0);
       };
 
       socket.onmessage = (event) => {
-        lastMessage.textContent = "Último mensaje: " + new Date().toLocaleTimeString();
-        registrar("RX: " + event.data);
-
         try {
           const datos = JSON.parse(event.data);
           if (datos.tipo === "arduino" || datos.tipo === "sensor" || datos.tipo === "telemetria") {
@@ -268,25 +305,20 @@
             distanceEl.textContent = Number(datos.distancia);
           }
         } catch (_) {
-          // El servidor puede enviar mensajes de texto que no sean JSON.
+          // Ignorar mensajes no formateados en JSON
         }
       };
 
-      socket.onerror = () => {
-        registrar("Error en la conexión WebSocket.");
-      };
+      socket.onerror = () => {};
 
       socket.onclose = () => {
         actualizarConexion("disconnected", "Desconectado");
-        lastMessage.textContent = "Conexión cerrada. Intentando reconectar...";
-        registrar("Conexión cerrada; se intentará reconectar en 3 segundos.");
         setTimeout(conectar, 3000);
       };
     }
 
     function enviarControl(modo, dir) {
       if (!socket || socket.readyState !== WebSocket.OPEN) {
-        registrar("No se envió la orden: no hay conexión.");
         return false;
       }
 
@@ -297,7 +329,6 @@
       };
 
       socket.send(JSON.stringify(mensaje));
-      registrar("TX: " + JSON.stringify(mensaje));
       automatico = modo;
       direccion = dir;
       actualizarInterfaz();
@@ -314,11 +345,11 @@
     }
 
     autoBtn.addEventListener("click", () => {
-      if (enviarControl(1, 0)) registrar("Modo automático solicitado.");
+      enviarControl(1, 0);
     });
 
     manualBtn.addEventListener("click", () => {
-      if (enviarControl(0, 0)) registrar("Modo manual activado; motor detenido por seguridad.");
+      enviarControl(0, 0);
     });
 
     leftBtn.addEventListener("click", () => {
